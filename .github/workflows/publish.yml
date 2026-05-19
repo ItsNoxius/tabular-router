@@ -30,9 +30,14 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: pnpm
 
-      # Trusted publishing requires npm 11.5.1+ (OIDC token exchange).
-      - name: Upgrade npm
-        run: npm install -g npm@latest
+      # Trusted publishing requires npm 11.5.1+ (OIDC). Use Corepack instead of
+      # `npm install -g`, which can fail on runners with a broken bundled npm.
+      - name: Setup npm for trusted publishing
+        run: |
+          corepack enable
+          corepack prepare npm@11.6.2 --activate
+          node --version
+          npm --version
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -48,4 +53,4 @@ jobs:
           fi
 
       - name: Publish to npm
-        run: pnpm publish --access public --provenance --no-git-checks
+        run: npm publish --access public --provenance
