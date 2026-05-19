@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": ["dist/**", "node_modules/**"],
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "vitest.config.ts"],
+      "plugins": ["vitest"]
+    }
+  ]
+}
