@@ -28,6 +28,18 @@
       "import": "./dist/types.js"
     }
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ItsNoxius/tabular-router.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ItsNoxius/tabular-router/issues"
+  },
+  "homepage": "https://github.com/ItsNoxius/tabular-router#readme",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "keywords": [
     "solidjs",
     "router",
