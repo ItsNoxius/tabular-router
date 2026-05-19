@@ -39,17 +39,23 @@ jobs:
           node --version
           npm --version
 
+      - name: Set version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          npm version "$TAG_VERSION" --no-git-tag-version --allow-same-version
+          echo "version=$TAG_VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify tag matches package.json version
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Log publish version
         run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          PKG_VERSION=$(node -p "require('./package.json').version")
-          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
-            echo "Tag v${TAG_VERSION} does not match package.json version ${PKG_VERSION}"
-            exit 1
+          if [ -n "${{ steps.version.outputs.version }}" ]; then
+            echo "Publishing ${{ steps.version.outputs.version }} (from tag)"
+          else
+            echo "Publishing $(node -p "require('./package.json').version") (from package.json)"
           fi
 
       - name: Publish to npm
