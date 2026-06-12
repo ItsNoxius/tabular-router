@@ -1,6 +1,6 @@
 # tabular-router
 
-**SolidJS router with browser-style tabs** — multiple tabs, per-tab back/forward history, keep-alive outlets, and state that survives navigation within a tab.
+**SolidJS router with browser-style tabs** — multiple tabs, per-tab back/forward history, and entry-local state that survives navigation within a tab.
 
 Built for desktop-style apps (IDEs, admin panels, creative tools) where users expect Chrome-like tabs instead of a single linear history stack.
 
@@ -8,8 +8,8 @@ Built for desktop-style apps (IDEs, admin panels, creative tools) where users ex
 
 - **Multi-tab routing** — open, close, switch, duplicate, and reopen tabs
 - **Per-tab history** — back/forward is scoped to the active tab, not global
-- **Keep-alive outlets** — visited history entries stay mounted (hidden when inactive) so scroll position and component state persist
-- **Entry-local state** — draft forms, filters, and UI state tied to a history entry; restored on back/forward
+- **Active outlet only** — only the active tab's current history entry is mounted; switching tabs or navigating unmounts the previous page
+- **Entry-local state** — draft forms, filters, and UI state tied to a history entry; restored on back/forward via `useRouteState`
 - **Familiar Solid API** — `Link`, `useNavigate`, `useParams`, `useSearchParams`, `useLocation`
 - **Optional chrome** — `TabButton`, `TabKeyboardShortcuts` (Ctrl/Cmd+T/W/D, 1–9, etc.)
 - **Imperative store** — navigate and manage tabs outside components via `tabular-router/store`
@@ -72,25 +72,25 @@ export function App() {
 
 Understanding these three layers makes the rest of the API click:
 
-| Layer             | What it is                                             | Example                                |
-| ----------------- | ------------------------------------------------------ | -------------------------------------- |
-| **Tab**           | A top-level workspace with its own history stack       | “Settings”, “Project A”                |
-| **History entry** | One URL (pathname + search) inside a tab               | `/users/42?tab=posts`                  |
-| **Mounted entry** | An entry whose component is still mounted (keep-alive) | All entries you’ve visited in that tab |
+| Layer             | What it is                                       | Example                 |
+| ----------------- | ------------------------------------------------ | ----------------------- |
+| **Tab**           | A top-level workspace with its own history stack | “Settings”, “Project A” |
+| **History entry** | One URL (pathname + search) inside a tab         | `/users/42?tab=posts`   |
+| **Active entry**  | The mounted page for the active tab              | Current `historyIndex`  |
 
 ```
 App
 ├── Tab "Home"          ← active tab
-│   ├── entry 1  /home        (mounted, hidden)
-│   ├── entry 2  /about       (mounted, visible)  ← historyIndex
+│   ├── entry 1  /home        (in history)
+│   ├── entry 2  /about       (mounted)  ← historyIndex
 │   └── entry 3  /settings    (not visited yet)
-└── Tab "Docs"
+└── Tab "Docs"              (not mounted while inactive)
     └── entry 1  /docs
 ```
 
 - **Navigate** in a tab pushes a new history entry (or replaces the current one).
 - **Back/forward** (`navigate(-1)` / `navigate(1)`) moves `historyIndex` within the active tab only.
-- **Switch tabs** changes which tab is active; each tab remembers its own index and mounted entries.
+- **Switch tabs** unmounts the previous tab's page and mounts the active tab's current entry.
 - **Close tab** snapshots it for **reopen** (Ctrl/Cmd+Shift+T when using `TabKeyboardShortcuts`).
 
 ## Routes
@@ -175,7 +175,7 @@ function SearchPage() {
 }
 ```
 
-Inside a **cached** (inactive) history entry, `useParams`, `useLocation`, and `useSearchParams` read that entry’s context — useful for keep-alive pages that still need their own URL slice.
+Only the active tab's current entry is mounted. Persist scroll position, drafts, and filters with `useRouteState` or your own stores when you need them restored after navigation.
 
 ## Tab UI
 
@@ -418,7 +418,7 @@ parseHref("/users/42?page=2");  // { pathname, search }
 | `useTabs`           | Tab list and tab CRUD                                   |
 | `useRouteState`     | Keyed state on current history entry                    |
 | `useEntryNamespace` | Namespaced state bag on current entry                   |
-| `useEntryContext`   | `{ entry, tabId, isActive }` for cached entries         |
+| `useEntryContext`   | `{ entry, tabId, isActive }` for the active entry       |
 | `useMatchRoute`     | Current route match                                     |
 
 ### Store (selection)
@@ -437,13 +437,13 @@ parseHref("/users/42?page=2");  // { pathname, search }
 
 ## How this differs from a single-history router
 
-|                    | Typical SPA router       | tabular-router               |
-| ------------------ | ------------------------ | ---------------------------- |
-| History            | One global stack         | One stack **per tab**        |
-| Back button        | App-wide                 | Scoped to active tab         |
-| Component lifetime | Often unmount on leave   | Visited entries stay mounted |
-| State              | Often global or URL-only | Per **history entry**        |
-| UX model           | One page at a time       | Many parallel workspaces     |
+|                    | Typical SPA router       | tabular-router                       |
+| ------------------ | ------------------------ | ------------------------------------ |
+| History            | One global stack         | One stack **per tab**                |
+| Back button        | App-wide                 | Scoped to active tab                 |
+| Component lifetime | Often unmount on leave   | Only the active tab entry is mounted |
+| State              | Often global or URL-only | Per **history entry**                |
+| UX model           | One page at a time       | Many parallel workspaces             |
 
 If you only need one page and no tabs, a standard Solid router may be simpler. Tabular shines when users juggle several contexts at once.
 

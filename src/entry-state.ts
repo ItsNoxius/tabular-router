@@ -1,7 +1,7 @@
 import { createMemo } from "solid-js";
 import { produce } from "solid-js/store";
 import { useTabular } from "./context";
-import { routerState, setRouterState } from "./store";
+import { routerState, setRouterState, getEntryStateVersion } from "./store";
 import type { HistoryEntry } from "./types";
 
 export function findEntryInTabs(entryId: string): { tabIndex: number; entryIndex: number } | null {
@@ -75,6 +75,32 @@ export function setEntryRouteKey(entry: HistoryEntry, key: string, value: unknow
   setEntryStatePath(entry, ["__route__", key], value);
 }
 
+export function getEntryScrollPosition(
+  entryId: string,
+  key = "default",
+): { top: number; left: number } | null {
+  const loc = findEntryInTabs(entryId);
+  if (!loc) return null;
+  const entry = routerState.tabs[loc.tabIndex].history[loc.entryIndex];
+  const buckets = readEntryState(entry)?.__scroll__;
+  if (!buckets || typeof buckets !== "object") return null;
+  const scroll = (buckets as Record<string, unknown>)[key];
+  if (!scroll || typeof scroll !== "object") return null;
+  const { top, left } = scroll as { top?: number; left?: number };
+  return { top: top ?? 0, left: left ?? 0 };
+}
+
+export function setEntryScrollPosition(
+  entryId: string,
+  position: { top: number; left: number },
+  key = "default",
+): void {
+  const loc = findEntryInTabs(entryId);
+  if (!loc) return;
+  const entry = routerState.tabs[loc.tabIndex].history[loc.entryIndex];
+  setEntryStatePath(entry, ["__scroll__", key], position);
+}
+
 /** Read/write namespaced state on the active history entry */
 export function getEntryNamespace(
   entry: HistoryEntry | undefined,
@@ -105,6 +131,7 @@ export function getEntryNamespace(
 export function useEntryNamespace(namespace: string) {
   const router = useTabular();
   return createMemo(() => {
+    getEntryStateVersion();
     const entry = router.activeEntry();
     return getEntryNamespace(entry, namespace);
   });
@@ -118,6 +145,7 @@ export function useRouteState<T extends Record<string, unknown>>(
   const init = typeof initial === "function" ? (initial as () => T)() : initial;
 
   const get = (): T => {
+    getEntryStateVersion();
     const entry = router.activeEntry();
     if (!entry) return init;
     const stored = getEntryRouteKey<T>(entry, key);

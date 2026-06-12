@@ -1,3 +1,4 @@
+import { createSignal } from "solid-js";
 import { createStore, produce } from "solid-js/store";
 import { cloneForStorage } from "./clone";
 import { buildHref, getRootPath, matchRoute, parseHref, resolveHref, setRootPath } from "./match";
@@ -46,7 +47,6 @@ function createTab(routes: TabularRoute[], initialHref?: string): Tab {
     title: resolveEntryTitle(entry),
     history: [entry],
     historyIndex: 0,
-    mountedEntryIds: [entry.id],
     windows: [],
     nextZIndex: 100,
   };
@@ -105,13 +105,6 @@ export function setDocumentTitle(title: string) {
   setDocumentTitleForEntry(entry.id, title);
 }
 
-function ensureMounted(tabIndex: number, entryId: string) {
-  const tab = routerState.tabs[tabIndex];
-  if (!tab.mountedEntryIds.includes(entryId)) {
-    setRouterState("tabs", tabIndex, "mountedEntryIds", (ids) => [...ids, entryId]);
-  }
-}
-
 let routerInitialized = false;
 
 export function getMaxTabs() {
@@ -165,7 +158,6 @@ function snapshotTab(tab: Tab): ClosedTabSnapshot {
     title: tab.title,
     history,
     historyIndex: tab.historyIndex,
-    mountedEntryIds: [...tab.mountedEntryIds],
     windows,
     nextZIndex: tab.nextZIndex,
   };
@@ -179,7 +171,6 @@ function restoreTab(snapshot: ClosedTabSnapshot): Tab {
       ...snapshotHistoryEntry(entry),
     })),
     historyIndex: snapshot.historyIndex,
-    mountedEntryIds: [...snapshot.mountedEntryIds],
     windows: snapshot.windows.map((w) => snapshotWindow(w)),
     nextZIndex: snapshot.nextZIndex,
   };
@@ -209,7 +200,6 @@ function cloneSnapshotAsNewTab(snapshot: ClosedTabSnapshot): Tab {
     entryIdMap.set(entry.id, newId);
     return { ...snapshotHistoryEntry(entry), id: newId };
   });
-  const mountedEntryIds = snapshot.mountedEntryIds.map((id) => entryIdMap.get(id) ?? id);
   const tabNum = nextTabId;
   const windows = snapshot.windows.map((w, i) => ({
     ...snapshotWindow(w),
@@ -220,7 +210,6 @@ function cloneSnapshotAsNewTab(snapshot: ClosedTabSnapshot): Tab {
     title: snapshot.title,
     history,
     historyIndex: snapshot.historyIndex,
-    mountedEntryIds,
     windows,
     nextZIndex: snapshot.nextZIndex,
   };
@@ -289,7 +278,6 @@ export function navigate(target: NavigateTarget, options?: NavigateOptions) {
     if (nextIndex < 0 || nextIndex >= tab.history.length) return;
     setRouterState("tabs", tabIndex, "historyIndex", nextIndex);
     const entry = tab.history[nextIndex];
-    ensureMounted(tabIndex, entry.id);
     updateTabTitle(tab.id, entry);
     return;
   }
@@ -301,9 +289,6 @@ export function navigate(target: NavigateTarget, options?: NavigateOptions) {
       produce((s) => {
         const t = s.tabs[tabIndex];
         t.history[t.historyIndex] = entry;
-        if (!t.mountedEntryIds.includes(entry.id)) {
-          t.mountedEntryIds.push(entry.id);
-        }
         t.title = resolveEntryTitle(entry);
       }),
     );
@@ -317,9 +302,6 @@ export function navigate(target: NavigateTarget, options?: NavigateOptions) {
       truncated.push(entry);
       t.history = truncated;
       t.historyIndex = truncated.length - 1;
-      if (!t.mountedEntryIds.includes(entry.id)) {
-        t.mountedEntryIds.push(entry.id);
-      }
       t.title = resolveEntryTitle(entry);
     }),
   );
@@ -410,15 +392,12 @@ export function setSearchParams(
       truncated.push(newEntry);
       t.history = truncated;
       t.historyIndex = truncated.length - 1;
-      if (!t.mountedEntryIds.includes(newEntry.id)) {
-        t.mountedEntryIds.push(newEntry.id);
-      }
     }),
   );
 }
 
 /** Bump reactive readers after mutating entry.state in place */
-let entryStateVersion = 0;
+const [entryStateVersion, setEntryStateVersion] = createSignal(0);
 const entryStateListeners = new Set<() => void>();
 
 export function subscribeEntryState(listener: () => void) {
@@ -427,12 +406,12 @@ export function subscribeEntryState(listener: () => void) {
 }
 
 export function notifyEntryState() {
-  entryStateVersion++;
+  setEntryStateVersion((version) => version + 1);
   entryStateListeners.forEach((l) => l());
 }
 
 export function getEntryStateVersion() {
-  return entryStateVersion;
+  return entryStateVersion();
 }
 
 export { createEntry, getActiveEntry, getActiveTab, routerState, setRouterState };
