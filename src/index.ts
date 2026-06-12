@@ -5,7 +5,7 @@ export type { TabButtonProps } from "./tab-button";
 export { TabKeyboardShortcuts } from "./tab-keyboard-shortcuts";
 export type { TabKeyboardShortcutsProps } from "./tab-keyboard-shortcuts";
 export { ScrollRestoration, useScrollRestoration } from "./scroll-restoration";
-export type { ScrollRestorationProps } from "./scroll-restoration";
+export type { UseScrollRestorationOptions, ScrollTarget } from "./scroll-restoration";
 export type { RouteProps } from "./route";
 export {
   useNavigate,

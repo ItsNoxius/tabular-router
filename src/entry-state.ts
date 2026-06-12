@@ -75,11 +75,16 @@ export function setEntryRouteKey(entry: HistoryEntry, key: string, value: unknow
   setEntryStatePath(entry, ["__route__", key], value);
 }
 
-export function getEntryScrollPosition(entryId: string): { top: number; left: number } | null {
+export function getEntryScrollPosition(
+  entryId: string,
+  key = "default",
+): { top: number; left: number } | null {
   const loc = findEntryInTabs(entryId);
   if (!loc) return null;
   const entry = routerState.tabs[loc.tabIndex].history[loc.entryIndex];
-  const scroll = readEntryState(entry)?.__scroll__;
+  const buckets = readEntryState(entry)?.__scroll__;
+  if (!buckets || typeof buckets !== "object") return null;
+  const scroll = (buckets as Record<string, unknown>)[key];
   if (!scroll || typeof scroll !== "object") return null;
   const { top, left } = scroll as { top?: number; left?: number };
   return { top: top ?? 0, left: left ?? 0 };
@@ -88,11 +93,12 @@ export function getEntryScrollPosition(entryId: string): { top: number; left: nu
 export function setEntryScrollPosition(
   entryId: string,
   position: { top: number; left: number },
+  key = "default",
 ): void {
   const loc = findEntryInTabs(entryId);
   if (!loc) return;
   const entry = routerState.tabs[loc.tabIndex].history[loc.entryIndex];
-  setEntryStatePath(entry, ["__scroll__"], position);
+  setEntryStatePath(entry, ["__scroll__", key], position);
 }
 
 /** Read/write namespaced state on the active history entry */
