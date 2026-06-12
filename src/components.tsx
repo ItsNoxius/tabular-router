@@ -1,9 +1,11 @@
-import { createMemo, Show, splitProps, type Component, type JSX } from "solid-js";
+import { createMemo, Show, splitProps, Suspense, type Component, type JSX } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import { TabularProvider, useTabular } from "./context";
 import { beginRouteCollection, takeCollectedRoutes } from "./route-registry";
 import { EntryContext } from "./hooks";
 import { matchRoute } from "./match";
-import { initRouter, routerState } from "./store";
+import { initRouter, routerState, getEntryStateVersion } from "./store";
+import type { HistoryEntry } from "./types";
 
 export type { RouteProps } from "./route";
 export { Route, isRouteComponent, ROUTE_SYMBOL } from "./route";
@@ -19,36 +21,70 @@ export interface RouterProps {
   children?: JSX.Element;
 }
 
+function TabularRoutePage(props: { entry: HistoryEntry; tabId: string; component: Component }) {
+  return (
+    <EntryContext.Provider
+      value={{
+        entry: props.entry,
+        tabId: props.tabId,
+        isActive: true,
+      }}
+    >
+      <div class="h-full min-h-0 w-full">
+        <Suspense fallback={<div class="h-full min-h-[12rem]" />}>
+          <Dynamic component={props.component} />
+        </Suspense>
+      </div>
+    </EntryContext.Provider>
+  );
+}
+
+type TabularOutletView = {
+  entry: HistoryEntry;
+  tabId: string;
+  component: Component;
+};
+
+function TabularOutletMatch(props: { match: TabularOutletView }) {
+  return (
+    <TabularRoutePage
+      entry={props.match.entry}
+      tabId={props.match.tabId}
+      component={props.match.component}
+    />
+  );
+}
+
 function TabularOutlet() {
   const router = useTabular();
   const routes = () => routerState.routes;
 
+  const entryId = createMemo(() => {
+    getEntryStateVersion();
+    return router.activeEntry()?.id;
+  });
+
   const view = createMemo(() => {
+    getEntryStateVersion();
+    const entry = router.activeEntry();
     const tab = router.activeTab();
-    const entry = tab?.history[tab.historyIndex];
-    if (!tab || !entry) return null;
+    if (!entry || !tab) return null;
+    void entry.pathname;
     const matched = matchRoute(routes(), entry.pathname);
     if (!matched) return null;
-    return { tab, entry, matched };
+    return {
+      entry,
+      tabId: tab.id,
+      component: matched.route.component,
+    };
   });
 
   return (
-    <Show when={view()}>
-      {(v) => {
-        const Comp = v().matched.route.component;
-        return (
-          <EntryContext.Provider
-            value={{
-              entry: v().entry,
-              tabId: v().tab.id,
-              isActive: true,
-            }}
-          >
-            <div class="h-full min-h-0 w-full">
-              <Comp />
-            </div>
-          </EntryContext.Provider>
-        );
+    <Show when={entryId()} keyed>
+      {(_id) => {
+        const match = view();
+        if (!match) return null;
+        return <TabularOutletMatch match={match} />;
       }}
     </Show>
   );
