@@ -83,7 +83,6 @@ export function TabularProvider(props: ParentProps) {
   });
   const activeEntry = createMemo(() => {
     entryTick();
-    getEntryStateVersion();
     return getActiveEntry(activeTab());
   });
 
