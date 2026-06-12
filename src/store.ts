@@ -1,3 +1,4 @@
+import { createSignal } from "solid-js";
 import { createStore, produce } from "solid-js/store";
 import { cloneForStorage } from "./clone";
 import { buildHref, getRootPath, matchRoute, parseHref, resolveHref, setRootPath } from "./match";
@@ -396,7 +397,7 @@ export function setSearchParams(
 }
 
 /** Bump reactive readers after mutating entry.state in place */
-let entryStateVersion = 0;
+const [entryStateVersion, setEntryStateVersion] = createSignal(0);
 const entryStateListeners = new Set<() => void>();
 
 export function subscribeEntryState(listener: () => void) {
@@ -405,12 +406,12 @@ export function subscribeEntryState(listener: () => void) {
 }
 
 export function notifyEntryState() {
-  entryStateVersion++;
+  setEntryStateVersion((version) => version + 1);
   entryStateListeners.forEach((l) => l());
 }
 
 export function getEntryStateVersion() {
-  return entryStateVersion;
+  return entryStateVersion();
 }
 
 export { createEntry, getActiveEntry, getActiveTab, routerState, setRouterState };

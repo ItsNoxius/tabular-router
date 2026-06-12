@@ -131,6 +131,7 @@ export function getEntryNamespace(
 export function useEntryNamespace(namespace: string) {
   const router = useTabular();
   return createMemo(() => {
+    getEntryStateVersion();
     const entry = router.activeEntry();
     return getEntryNamespace(entry, namespace);
   });
