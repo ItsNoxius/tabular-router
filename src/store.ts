@@ -67,9 +67,12 @@ function getActiveEntry(tab: Tab | undefined): HistoryEntry | undefined {
   return tab.history[tab.historyIndex];
 }
 
-/** Tab label from the history entry; pages set this via `useDocumentTitle`. */
+/** Tab label from the history entry; pages override route defaults via `useDocumentTitle`. */
 export function resolveEntryTitle(entry: HistoryEntry): string {
-  return entry.documentTitle?.trim() ?? "";
+  const custom = entry.documentTitle?.trim();
+  if (custom) return custom;
+  const match = matchRoute(routerState.routes, entry.pathname);
+  return match?.route.title?.trim() ?? "";
 }
 
 function updateTabTitle(tabId: string, entry: HistoryEntry) {
