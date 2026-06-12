@@ -2,7 +2,7 @@ import { createContext, createEffect, createMemo, useContext, type Accessor } fr
 import { createStore, reconcile } from "solid-js/store";
 import { useTabular } from "./context";
 import { matchRoute } from "./match";
-import { routerState, setDocumentTitleForEntry } from "./store";
+import { routerState, setDocumentTitleForEntry, getEntryStateVersion } from "./store";
 import type { HistoryEntry, NavigateOptions, ParsedLocation } from "./types";
 
 export interface EntryContextValue {
@@ -151,8 +151,10 @@ export function useTabs() {
 
 export function useMatchRoute() {
   return createMemo(() => {
+    getEntryStateVersion();
     const entry = resolveEntry();
     if (!entry) return null;
+    void entry.pathname;
     return matchRoute(routerState.routes, entry.pathname);
   });
 }

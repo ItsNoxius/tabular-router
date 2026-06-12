@@ -1,5 +1,5 @@
-import { createSignal } from "solid-js";
 import { createStore, produce } from "solid-js/store";
+import { createSignal } from "solid-js";
 import { cloneForStorage } from "./clone";
 import { buildHref, getRootPath, matchRoute, parseHref, resolveHref, setRootPath } from "./match";
 import type {
@@ -279,6 +279,7 @@ export function navigate(target: NavigateTarget, options?: NavigateOptions) {
     setRouterState("tabs", tabIndex, "historyIndex", nextIndex);
     const entry = tab.history[nextIndex];
     updateTabTitle(tab.id, entry);
+    notifyEntryState();
     return;
   }
 
@@ -292,6 +293,7 @@ export function navigate(target: NavigateTarget, options?: NavigateOptions) {
         t.title = resolveEntryTitle(entry);
       }),
     );
+    notifyEntryState();
     return;
   }
 
@@ -305,6 +307,7 @@ export function navigate(target: NavigateTarget, options?: NavigateOptions) {
       t.title = resolveEntryTitle(entry);
     }),
   );
+  notifyEntryState();
 }
 
 export function openTab(href?: string): boolean {

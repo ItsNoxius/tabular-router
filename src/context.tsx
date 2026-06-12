@@ -65,17 +65,24 @@ export function useTabular(): TabularContextValue {
 }
 
 export function TabularProvider(props: ParentProps) {
-  const [, setEntryTick] = createSignal(0);
+  const [entryTick, setEntryTick] = createSignal(0);
 
   onCleanup(
     subscribeEntryState(() => {
       setEntryTick((v) => v + 1);
-      getEntryStateVersion();
     }),
   );
 
-  const activeTab = createMemo(() => getActiveTab());
+  const activeTab = createMemo(() => {
+    entryTick();
+    const tab = getActiveTab();
+    if (tab) {
+      void [tab.historyIndex, tab.history.length];
+    }
+    return tab;
+  });
   const activeEntry = createMemo(() => {
+    entryTick();
     getEntryStateVersion();
     return getActiveEntry(activeTab());
   });
