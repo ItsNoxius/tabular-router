@@ -77,8 +77,7 @@ export function TabularProvider(props: ParentProps) {
     entryTick();
     const tab = getActiveTab();
     if (tab) {
-      tab.historyIndex;
-      tab.history.length;
+      void [tab.historyIndex, tab.history.length];
     }
     return tab;
   });
