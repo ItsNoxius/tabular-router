@@ -1,7 +1,7 @@
 import { createMemo } from "solid-js";
 import { produce } from "solid-js/store";
 import { useTabular } from "./context";
-import { routerState, setRouterState } from "./store";
+import { routerState, setRouterState, getEntryStateVersion } from "./store";
 import type { HistoryEntry } from "./types";
 
 export function findEntryInTabs(entryId: string): { tabIndex: number; entryIndex: number } | null {
@@ -75,6 +75,26 @@ export function setEntryRouteKey(entry: HistoryEntry, key: string, value: unknow
   setEntryStatePath(entry, ["__route__", key], value);
 }
 
+export function getEntryScrollPosition(entryId: string): { top: number; left: number } | null {
+  const loc = findEntryInTabs(entryId);
+  if (!loc) return null;
+  const entry = routerState.tabs[loc.tabIndex].history[loc.entryIndex];
+  const scroll = readEntryState(entry)?.__scroll__;
+  if (!scroll || typeof scroll !== "object") return null;
+  const { top, left } = scroll as { top?: number; left?: number };
+  return { top: top ?? 0, left: left ?? 0 };
+}
+
+export function setEntryScrollPosition(
+  entryId: string,
+  position: { top: number; left: number },
+): void {
+  const loc = findEntryInTabs(entryId);
+  if (!loc) return;
+  const entry = routerState.tabs[loc.tabIndex].history[loc.entryIndex];
+  setEntryStatePath(entry, ["__scroll__"], position);
+}
+
 /** Read/write namespaced state on the active history entry */
 export function getEntryNamespace(
   entry: HistoryEntry | undefined,
@@ -118,6 +138,7 @@ export function useRouteState<T extends Record<string, unknown>>(
   const init = typeof initial === "function" ? (initial as () => T)() : initial;
 
   const get = (): T => {
+    getEntryStateVersion();
     const entry = router.activeEntry();
     if (!entry) return init;
     const stored = getEntryRouteKey<T>(entry, key);
