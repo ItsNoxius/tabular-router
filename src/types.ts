@@ -3,6 +3,8 @@ import type { Component } from "solid-js";
 export interface TabularRoute {
   path: string;
   component: Component;
+  /** Default tab label when the page does not call `useDocumentTitle`. */
+  title?: string;
 }
 
 export interface ParsedLocation {

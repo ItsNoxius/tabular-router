@@ -11,7 +11,7 @@ export interface PartitionedChildren {
 
 type ElementNode = JSX.Element & {
   type: unknown;
-  props: { children?: unknown; path?: string; component?: Component };
+  props: { children?: unknown; path?: string; component?: Component; title?: string };
 };
 
 function isFragmentType(type: unknown): boolean {
@@ -63,6 +63,7 @@ function walk(node: unknown, routes: TabularRoute[], extras: JSX.Element[]) {
     routes.push({
       path: el.props.path!,
       component: el.props.component!,
+      title: el.props.title,
     });
     return;
   }
