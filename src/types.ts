@@ -40,8 +40,6 @@ export interface Tab {
   title: string;
   history: HistoryEntry[];
   historyIndex: number;
-  /** entry ids that have been mounted (keep-alive) */
-  mountedEntryIds: string[];
   windows: TabWindowState[];
   nextZIndex: number;
 }
@@ -51,7 +49,6 @@ export interface ClosedTabSnapshot {
   title: string;
   history: HistoryEntry[];
   historyIndex: number;
-  mountedEntryIds: string[];
   windows: TabWindowState[];
   nextZIndex: number;
 }

@@ -1,10 +1,9 @@
-import { createMemo, For, Show, splitProps, type Component, type JSX } from "solid-js";
+import { createMemo, Show, splitProps, type Component, type JSX } from "solid-js";
 import { TabularProvider, useTabular } from "./context";
 import { beginRouteCollection, takeCollectedRoutes } from "./route-registry";
 import { EntryContext } from "./hooks";
 import { matchRoute } from "./match";
 import { initRouter, routerState } from "./store";
-import type { HistoryEntry, Tab, TabularRoute } from "./types";
 
 export type { RouteProps } from "./route";
 export { Route, isRouteComponent, ROUTE_SYMBOL } from "./route";
@@ -20,65 +19,38 @@ export interface RouterProps {
   children?: JSX.Element;
 }
 
-function findEntry(tab: Tab, entryId: string): HistoryEntry | undefined {
-  return tab.history.find((e) => e.id === entryId);
-}
-
-function CachedEntry(props: { tab: Tab; entryId: string; routes: TabularRoute[] }) {
+function TabularOutlet() {
   const router = useTabular();
-  const entry = createMemo(() => findEntry(props.tab, props.entryId));
-  const isActive = createMemo(() => {
-    const activeTab = router.activeTab();
-    const activeEntry = router.activeEntry();
-    return activeTab?.id === props.tab.id && activeEntry?.id === props.entryId;
-  });
+  const routes = () => routerState.routes;
 
-  const match = createMemo(() => {
-    const e = entry();
-    if (!e) return null;
-    return matchRoute(props.routes, e.pathname);
+  const view = createMemo(() => {
+    const tab = router.activeTab();
+    const entry = tab?.history[tab.historyIndex];
+    if (!tab || !entry) return null;
+    const matched = matchRoute(routes(), entry.pathname);
+    if (!matched) return null;
+    return { tab, entry, matched };
   });
 
   return (
-    <Show when={match()}>
-      {(m) => {
-        const e = entry()!;
-        const Comp = m().route.component;
+    <Show when={view()}>
+      {(v) => {
+        const Comp = v().matched.route.component;
         return (
           <EntryContext.Provider
             value={{
-              entry: e,
-              tabId: props.tab.id,
-              isActive: isActive(),
+              entry: v().entry,
+              tabId: v().tab.id,
+              isActive: true,
             }}
           >
-            <div
-              class="h-full min-h-0 w-full"
-              style={{
-                display: isActive() ? "block" : "none",
-              }}
-              aria-hidden={!isActive() ? true : undefined}
-            >
+            <div class="h-full min-h-0 w-full">
               <Comp />
             </div>
           </EntryContext.Provider>
         );
       }}
     </Show>
-  );
-}
-
-function TabularOutlet() {
-  const routes = () => routerState.routes;
-
-  return (
-    <For each={routerState.tabs}>
-      {(tab) => (
-        <For each={tab.mountedEntryIds}>
-          {(entryId) => <CachedEntry tab={tab} entryId={entryId} routes={routes()} />}
-        </For>
-      )}
-    </For>
   );
 }
 
